@@ -1,0 +1,12 @@
+*
+!.gitignore
+!*.nix
+
+!scripts/
+!*.sh
+
+!data/
+!*.txt
+
+!src/
+!*.hs
