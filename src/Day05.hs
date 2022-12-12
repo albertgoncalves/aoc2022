@@ -47,14 +47,19 @@ move = do
 intoStacks :: [[Maybe Char]] -> Array Int String
 intoStacks xs = listArray (1, length $ head xs) $ map catMaybes $ transpose xs
 
-execute :: Array Int String -> Move -> Array Int String
-execute stacks (Move 0 _ _) = stacks
-execute stacks (Move n from to) =
+part1 :: Array Int String -> Move -> Array Int String
+part1 stacks (Move 0 _ _) = stacks
+part1 stacks (Move n from to) =
   case stacks ! from of
     (x : xs) ->
-      execute (stacks // [(from, xs), (to, x : stacks ! to)]) $
+      part1 (stacks // [(from, xs), (to, x : stacks ! to)]) $
         Move (n - 1) from to
     _ -> undefined
+
+part2 :: Array Int String -> Move -> Array Int String
+part2 stacks (Move n from to) = stacks // [(from, b), (to, a ++ stacks ! to)]
+  where
+    (a, b) = splitAt n $ stacks ! from
 
 parse :: String -> (Array Int String, [Move])
 parse =
@@ -72,4 +77,10 @@ parse =
       )
 
 main :: IO ()
-main = interact $ map head . elems . uncurry (foldl execute) . parse
+main =
+  interact $
+    unlines
+      . map (map head . elems)
+      . zipWith (uncurry . foldl) [part1, part2]
+      . replicate 2
+      . parse
