@@ -56,12 +56,12 @@ part2 [opponent, player] =
     f _ = undefined
 part2 _ = undefined
 
-solve :: String -> String
-solve s = unlines $ map show [f part1 xs, f part2 xs]
-  where
-    xs :: [String]
-    xs = map (map head . words) $ lines s
-    f g = sum . map (uncurry score . g)
-
 main :: IO ()
-main = interact solve
+main =
+  interact $
+    unlines
+      . map show
+      . zipWith ((sum .) . map . (uncurry score .)) [part1, part2]
+      . replicate 2
+      . map (map head . words)
+      . lines
