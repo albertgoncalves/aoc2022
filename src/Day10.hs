@@ -20,25 +20,28 @@ inst =
   (InstNoop <$ string "noop")
     <++ (InstAdd . read <$> (string "addx " *> munch1 (not . isSpace)))
 
-run :: Int -> Int -> Inst -> (Int, Int)
-run cycles register InstNoop = (cycles + 1, register)
-run cycles register (InstAdd x) = (cycles + 2, register + x)
+run :: Int -> [Inst] -> [Int]
+run _ [] = []
+run register (InstNoop : insts) = register : run register insts
+run register (InstAdd x : insts) =
+  register : register : run (register + x) insts
 
-tally :: Int -> [(Int, Int)] -> [Int]
-tally n ((_, r) : xs@((c, _) : _))
-  | 40 <= c - n = (r * m) : tally m xs
-  | otherwise = tally n xs
+part1 :: Int -> [(Int, Int)] -> [Int]
+part1 n ((_, r) : xs@((c, _) : _))
+  | 40 <= c - n = (r * m) : part1 m xs
+  | otherwise = part1 n xs
   where
     m = n + 40
-tally _ _ = []
+part1 _ _ = []
 
 main :: IO ()
 main =
   interact $
     show
       . sum
-      . tally (-20)
-      . scanl (uncurry run) (0, 1)
+      . part1 (-20)
+      . zip [0 ..]
+      . run 1
       . fst
       . head
       . readP_to_S (many1 (inst <* char '\n') <* eof)
