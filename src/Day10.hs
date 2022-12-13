@@ -1,4 +1,7 @@
+{-# LANGUAGE LambdaCase #-}
+
 import Data.Char (isSpace)
+import Data.List (unfoldr)
 import Text.ParserCombinators.ReadP
   ( ReadP,
     char,
@@ -9,6 +12,7 @@ import Text.ParserCombinators.ReadP
     string,
     (<++),
   )
+import Prelude hiding (cycle)
 
 data Inst
   = InstNoop
@@ -34,12 +38,30 @@ part1 n ((_, r) : xs@((c, _) : _))
     m = n + 40
 part1 _ _ = []
 
+part2 :: Int -> Int -> Char
+part2 cycle register
+  | ((register - 1) <= c) && (c <= (register + 1)) = '#'
+  | otherwise = ' '
+  where
+    c = cycle `mod` 40
+
+chunks :: Int -> [a] -> [[a]]
+chunks n =
+  unfoldr $
+    \case
+      [] -> Nothing
+      xs -> Just $ splitAt n xs
+
 main :: IO ()
 main =
   interact $
-    show
-      . sum
-      . part1 (-20)
+    unlines
+      . zipWith
+        ($)
+        [ show . sum . part1 (-20),
+          unlines . chunks 40 . map (uncurry part2)
+        ]
+      . replicate 2
       . zip [0 ..]
       . run 1
       . fst
