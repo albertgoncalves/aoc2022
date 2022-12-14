@@ -53,6 +53,6 @@ main =
   interact $
     unlines
       . zipWith solve [2, 10]
-      . replicate 2
+      . repeat
       . concatMap (parse . words)
       . lines

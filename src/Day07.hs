@@ -85,7 +85,7 @@ main =
     unlines
       . map show
       . zipWith ($) [part1, part2]
-      . replicate 2
+      . repeat
       . map snd
       . M.toList
       . foldr (uncurry tally) M.empty

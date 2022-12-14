@@ -30,5 +30,5 @@ main =
     unlines
       . map show
       . zipWith ($) [sum . map part1, part2]
-      . replicate 2
+      . repeat
       . lines

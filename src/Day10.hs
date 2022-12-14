@@ -61,7 +61,7 @@ main =
         [ show . sum . part1 (-20),
           unlines . chunks 40 . map (uncurry part2)
         ]
-      . replicate 2
+      . repeat
       . zip [0 ..]
       . run 1
       . fst

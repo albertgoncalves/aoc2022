@@ -82,5 +82,5 @@ main =
     unlines
       . map (map head . elems)
       . zipWith (uncurry . foldl) [part1, part2]
-      . replicate 2
+      . repeat
       . parse

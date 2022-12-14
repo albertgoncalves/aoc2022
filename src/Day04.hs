@@ -37,5 +37,5 @@ main =
     unlines
       . map (show . length)
       . zipWith (filter . uncurry) [part1, part2]
-      . replicate 2
+      . repeat
       . parse

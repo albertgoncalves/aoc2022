@@ -62,6 +62,6 @@ main =
     unlines
       . map show
       . zipWith ((sum .) . map . (uncurry score .)) [part1, part2]
-      . replicate 2
+      . repeat
       . map (map head . words)
       . lines

@@ -16,4 +16,4 @@ solve n =
       )
 
 main :: IO ()
-main = interact $ unlines . map show . zipWith solve [4, 14] . replicate 2
+main = interact $ unlines . map show . zipWith solve [4, 14] . repeat
