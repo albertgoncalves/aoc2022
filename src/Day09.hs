@@ -1,6 +1,5 @@
 import Data.Bifunctor (first, second)
 import Data.List (nub, sort)
-import Prelude hiding (head, tail)
 
 data Dir
   = DirUp
@@ -27,8 +26,8 @@ move DirLeft = first $ subtract 1
 move DirRight = first (+ 1)
 
 follow :: Pos -> Pos -> Pos
-follow (x0, y0) tail@(x1, y1)
-  | (abs (x0 - x1) <= 1) && (abs (y0 - y1) <= 1) = tail
+follow (x0, y0) (x1, y1)
+  | (abs (x0 - x1) <= 1) && (abs (y0 - y1) <= 1) = (x1, y1)
   | otherwise = (x2, y2)
   where
     x2
@@ -41,7 +40,7 @@ follow (x0, y0) tail@(x1, y1)
       | otherwise = y1
 
 sim :: Rope -> Dir -> Rope
-sim (head : tail) dir = scanl follow (move dir head) tail
+sim (x : xs) dir = scanl follow (move dir x) xs
 sim _ _ = undefined
 
 solve :: Int -> [Dir] -> String
