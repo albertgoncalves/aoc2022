@@ -1,9 +1,7 @@
-{-# LANGUAGE TupleSections #-}
-
-import Control.Monad.State (State, execState, modify, state)
 import Data.Char (isDigit)
-import Data.List (sort)
-import qualified Data.Map as M
+import Data.IntMap ((!))
+import qualified Data.IntMap as M
+import Data.List (foldl', sort)
 import Text.ParserCombinators.ReadP
   ( ReadP,
     char,
@@ -18,39 +16,27 @@ import Text.ParserCombinators.ReadP
   )
 import Prelude hiding (round)
 
-data Op
-  = OpAdd
-  | OpMul
+data Monkey = Monkey (Int -> Int) Int Int Int
 
-data Monkey = Monkey
-  { monkeyItems :: [Int],
-    monkeyOp :: (Op, Maybe Int),
-    monkeyTest :: Int,
-    monkeyIfTrue :: Int,
-    monkeyIfFalse :: Int
-  }
+monkeyTest :: Monkey -> Int
+monkeyTest (Monkey _ test _ _) = test
 
 int :: ReadP Int
 int = read <$> munch1 isDigit
 
-operation :: ReadP (Op, Maybe Int)
-operation = do
-  _ <- string "new = old "
-  op <- (OpAdd <$ char '+') <++ (OpMul <$ char '*')
-  skipSpaces
-  (op,) <$> (Just <$> int) <++ (Nothing <$ string "old")
-
-monkey :: ReadP Monkey
+monkey :: ReadP (Int, [Int], Monkey)
 monkey = do
   _ <- string "Monkey "
-  _ <- int
+  index <- int
   _ <- char ':'
   skipSpaces
   _ <- string "Starting items: "
   items <- sepBy1 int (string ", ")
   skipSpaces
-  _ <- string "Operation: "
-  op <- operation
+  _ <- string "Operation: new = old "
+  f <- ((+) <$ char '+') <++ ((*) <$ char '*')
+  skipSpaces
+  op <- (f <$> int) <++ ((\x -> f x x) <$ string "old")
   skipSpaces
   _ <- string "Test: divisible by "
   test <- int
@@ -59,85 +45,55 @@ monkey = do
   ifTrue <- int
   skipSpaces
   _ <- string "If false: throw to monkey "
-  Monkey items op test ifTrue <$> int
+  ifFalse <- int
+  return (index, items, Monkey op test ifTrue ifFalse)
 
-getMonkey :: Int -> State (M.Map Int (Int, Monkey)) (Int, Monkey)
-getMonkey i = state $ \s -> ((M.!) s i, s)
+pop :: Enum a => Int -> M.IntMap (a, [b]) -> Maybe (b, M.IntMap (a, [b]))
+pop k m =
+  case m ! k of
+    (_, []) -> Nothing
+    (n, v : vs) -> Just (v, M.insert k (succ n, vs) m)
 
-popItem :: Int -> State (M.Map Int (Int, Monkey)) (Maybe Int)
-popItem i = do
-  (t, m) <- getMonkey i
-  case monkeyItems m of
-    [] -> return Nothing
-    (x : xs) -> state $ \s ->
-      (Just x, M.insert i (t + 1, m {monkeyItems = xs}) s)
+append :: Int -> b -> M.IntMap (a, [b]) -> M.IntMap (a, [b])
+append k v m = M.insert k (n, vs ++ [v]) m
+  where
+    (n, vs) = m ! k
 
-pushItem :: Int -> Int -> State (M.Map Int (Int, Monkey)) ()
-pushItem i x = do
-  (t, m) <- getMonkey i
-  modify $ \s -> M.insert i (t, m {monkeyItems = monkeyItems m ++ [x]}) s
+solve :: (Int, Bool) -> ([Int], [[Int]], [Monkey]) -> [M.IntMap (Int, [Int])]
+solve (n, flag) (indices, items, monkeys0) =
+  drop n $ iterate round $ M.fromList $ zip indices $ zip (repeat 0) items
+  where
+    f =
+      if flag
+        then (`mod` product (map monkeyTest monkeys0))
+        else (`div` 3)
+    monkeys1 = M.fromList $ zip indices monkeys0
 
-select :: Op -> (Int -> Int -> Int)
-select OpAdd = (+)
-select OpMul = (*)
+    turn :: M.IntMap (Int, [Int]) -> Int -> M.IntMap (Int, [Int])
+    turn items0 index =
+      case pop index items0 of
+        Nothing -> items0
+        Just (x0, items1) ->
+          let Monkey op test ifTrue ifFalse = monkeys1 ! index
+              x1 = f $ op x0
+              recipient =
+                if x1 `mod` test == 0
+                  then ifTrue
+                  else ifFalse
+           in turn (append recipient x1 items1) index
 
-runOp :: Op -> Maybe Int -> Int -> Int
-runOp op (Just a) b = select op a b
-runOp op Nothing x = select op x x
-
-turn :: Maybe Int -> Int -> State (M.Map Int (Int, Monkey)) ()
-turn mode i = do
-  maybeItem <- popItem i
-  case maybeItem of
-    Nothing -> return ()
-    Just x0 -> do
-      m <- snd <$> getMonkey i
-      let x1 =
-            case mode of
-              Nothing -> uncurry runOp (monkeyOp m) x0 `div` 3
-              Just d -> uncurry runOp (monkeyOp m) x0 `mod` d
-      pushItem
-        ( ( if x1 `mod` monkeyTest m == 0
-              then monkeyIfTrue
-              else monkeyIfFalse
-          )
-            m
-        )
-        x1
-      turn mode i
-
-round :: Bool -> State (M.Map Int (Int, Monkey)) ()
-round mode = do
-  n <- state $ \s -> (M.size s, s)
-  d <-
-    if mode
-      then state $ \s ->
-        (Just $ product $ map (monkeyTest . snd) $ M.elems s, s)
-      else return Nothing
-  mapM_ (turn d) [0 .. n - 1]
-
-sim :: Int -> Bool -> [Monkey] -> String
-sim k mode =
-  show
-    . product
-    . take 2
-    . reverse
-    . sort
-    . map (fst . snd)
-    . M.toList
-    . last
-    . take k
-    . iterate (execState (round mode))
-    . M.fromList
-    . zip [0 ..]
-    . zip (repeat 0)
+    round :: M.IntMap (Int, [Int]) -> M.IntMap (Int, [Int])
+    round = flip (foldl' turn) indices
 
 main :: IO ()
 main =
   interact $
     unlines
-      . zipWith (uncurry sim) [(21, False), (10001, True)]
+      . map
+        (show . product . take 2 . reverse . sort . map fst . M.elems . head)
+      . zipWith solve [(20, False), (10000, True)]
       . repeat
+      . unzip3
       . fst
       . head
       . readP_to_S (many1 (monkey <* skipSpaces) <* eof)
