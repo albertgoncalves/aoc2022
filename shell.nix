@@ -7,5 +7,6 @@ mkShell {
         ormolu
     ];
     shellHook = ''
+        . .shellhook
     '';
 }

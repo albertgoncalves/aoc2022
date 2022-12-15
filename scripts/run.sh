@@ -2,7 +2,16 @@
 
 set -eu
 
+for x in bin build; do
+    if [ ! -d "$WD/$x" ]; then
+        mkdir "$WD/$x"
+    fi
+done
+
 flags=(
+    "-fdiagnostics-color=always"
+    -O2
+    "-outputdir $WD/build"
     -Wall
     -Wcompat
     -Werror
@@ -18,4 +27,5 @@ flags=(
 
 hlint "$1"
 ormolu -i "$1"
-runghc "${flags[@]}" "$1" < "$2"
+ghc "${flags[@]}" -o "$WD/bin/main" "$1"
+"$WD/bin/main" < "$2"
