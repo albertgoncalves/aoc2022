@@ -21,7 +21,6 @@ import Prelude hiding (round)
 data Op
   = OpAdd
   | OpMul
-  deriving (Show)
 
 data Monkey = Monkey
   { monkeyItems :: [Int],
@@ -30,7 +29,6 @@ data Monkey = Monkey
     monkeyIfTrue :: Int,
     monkeyIfFalse :: Int
   }
-  deriving (Show)
 
 int :: ReadP Int
 int = read <$> munch1 isDigit
@@ -63,80 +61,82 @@ monkey = do
   _ <- string "If false: throw to monkey "
   Monkey items op test ifTrue <$> int
 
-part1 :: [Monkey] -> [Int]
-part1 =
-  map (fst . snd)
+getMonkey :: Int -> State (M.Map Int (Int, Monkey)) (Int, Monkey)
+getMonkey i = state $ \s -> ((M.!) s i, s)
+
+popItem :: Int -> State (M.Map Int (Int, Monkey)) (Maybe Int)
+popItem i = do
+  (t, m) <- getMonkey i
+  case monkeyItems m of
+    [] -> return Nothing
+    (x : xs) -> state $ \s ->
+      (Just x, M.insert i (t + 1, m {monkeyItems = xs}) s)
+
+pushItem :: Int -> Int -> State (M.Map Int (Int, Monkey)) ()
+pushItem i x = do
+  (t, m) <- getMonkey i
+  modify $ \s -> M.insert i (t, m {monkeyItems = monkeyItems m ++ [x]}) s
+
+select :: Op -> (Int -> Int -> Int)
+select OpAdd = (+)
+select OpMul = (*)
+
+runOp :: Op -> Maybe Int -> Int -> Int
+runOp op (Just a) b = select op a b
+runOp op Nothing x = select op x x
+
+turn :: Maybe Int -> Int -> State (M.Map Int (Int, Monkey)) ()
+turn mode i = do
+  maybeItem <- popItem i
+  case maybeItem of
+    Nothing -> return ()
+    Just x0 -> do
+      m <- snd <$> getMonkey i
+      let x1 =
+            case mode of
+              Nothing -> uncurry runOp (monkeyOp m) x0 `div` 3
+              Just d -> uncurry runOp (monkeyOp m) x0 `mod` d
+      pushItem
+        ( ( if x1 `mod` monkeyTest m == 0
+              then monkeyIfTrue
+              else monkeyIfFalse
+          )
+            m
+        )
+        x1
+      turn mode i
+
+round :: Bool -> State (M.Map Int (Int, Monkey)) ()
+round mode = do
+  n <- state $ \s -> (M.size s, s)
+  d <-
+    if mode
+      then state $ \s ->
+        (Just $ product $ map (monkeyTest . snd) $ M.elems s, s)
+      else return Nothing
+  mapM_ (turn d) [0 .. n - 1]
+
+sim :: Int -> Bool -> [Monkey] -> String
+sim k mode =
+  show
+    . product
+    . take 2
+    . reverse
+    . sort
+    . map (fst . snd)
     . M.toList
     . last
-    . take 21
-    . iterate (execState round)
+    . take k
+    . iterate (execState (round mode))
     . M.fromList
     . zip [0 ..]
     . zip (repeat 0)
-  where
-    getMonkey :: Int -> State (M.Map Int (Int, Monkey)) (Int, Monkey)
-    getMonkey i = state $ \s -> ((M.!) s i, s)
-
-    popItem :: Int -> State (M.Map Int (Int, Monkey)) (Maybe Int)
-    popItem i = do
-      (t, m) <- getMonkey i
-      case monkeyItems m of
-        [] -> return Nothing
-        (x : xs) -> state $ \s ->
-          ( Just x,
-            M.insert
-              i
-              (t + 1, m {monkeyItems = xs})
-              s
-          )
-
-    pushItem :: Int -> Int -> State (M.Map Int (Int, Monkey)) ()
-    pushItem i x = do
-      (t, m) <- getMonkey i
-      modify $ \s ->
-        M.insert
-          i
-          (t, m {monkeyItems = monkeyItems m ++ [x]})
-          s
-
-    select :: Op -> (Int -> Int -> Int)
-    select OpAdd = (+)
-    select OpMul = (*)
-
-    runOp :: Op -> Maybe Int -> Int -> Int
-    runOp op (Just a) b = select op a b
-    runOp op Nothing x = select op x x
-
-    turn :: Int -> State (M.Map Int (Int, Monkey)) ()
-    turn i = do
-      item0 <- popItem i
-      case item0 of
-        Nothing -> return ()
-        Just x -> do
-          m <- snd <$> getMonkey i
-          let d = monkeyTest m
-          let item1 = uncurry runOp (monkeyOp m) x
-          let item2 = item1 `div` 3
-          let j =
-                ( if item2 `mod` d == 0
-                    then monkeyIfTrue
-                    else monkeyIfFalse
-                )
-                  m
-          pushItem j item2
-          turn i
-
-    round :: State (M.Map Int (Int, Monkey)) ()
-    round = do
-      n <- state $ \s -> (M.size s, s)
-      mapM_ turn [0 .. n - 1]
 
 main :: IO ()
 main =
   interact $
     unlines
-      . map (show . product . take 2 . reverse . sort)
-      . zipWith ($) [part1]
+      . zipWith (uncurry sim) [(21, False), (10001, True)]
       . repeat
       . fst
       . head
