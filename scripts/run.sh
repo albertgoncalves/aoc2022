@@ -2,16 +2,15 @@
 
 set -eu
 
-for x in bin build; do
-    if [ ! -d "$WD/$x" ]; then
-        mkdir "$WD/$x"
-    fi
-done
+if [ ! -d "$WD/bin" ]; then
+    mkdir "$WD/bin"
+fi
 
 flags=(
     "-fdiagnostics-color=always"
+    -no-keep-hi-files
+    -no-keep-o-files
     -O2
-    "-outputdir $WD/build"
     -Wall
     -Wcompat
     -Werror
