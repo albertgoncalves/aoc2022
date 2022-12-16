@@ -17,7 +17,6 @@ import Text.ParserCombinators.ReadP
   )
 
 data Move = Move Int Int Int
-  deriving (Show)
 
 block :: ReadP (Maybe Char)
 block =

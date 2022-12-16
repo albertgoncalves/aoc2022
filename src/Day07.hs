@@ -19,7 +19,6 @@ import Text.ParserCombinators.ReadP
 data Command
   = CommandChange String
   | CommandList [(String, Int)] [String]
-  deriving (Show)
 
 ident :: ReadP String
 ident = munch1 (not . isSpace)

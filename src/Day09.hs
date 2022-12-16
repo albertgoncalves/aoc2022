@@ -6,7 +6,6 @@ data Dir
   | DirDown
   | DirLeft
   | DirRight
-  deriving (Show)
 
 type Pos = (Int, Int)
 

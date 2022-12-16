@@ -17,7 +17,6 @@ import Prelude hiding (cycle)
 data Inst
   = InstNoop
   | InstAdd Int
-  deriving (Show)
 
 inst :: ReadP Inst
 inst =
