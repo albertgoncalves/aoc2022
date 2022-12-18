@@ -18,7 +18,7 @@ import Text.ParserCombinators.ReadP
 
 type Valve = (String, (Int, [String]))
 
-type Memo = M.Map (S.Set String, String, Int) Int
+type Memo = M.Map (S.Set String, String, Int, Int) Int
 
 ident :: ReadP String
 ident = munch1 isUpper
@@ -35,15 +35,19 @@ valve = do
 -- NOTE: See `https://www.youtube.com/watch?v=DgqkVDr1WX8`.
 -- NOTE: See `https://github.com/jonathanpaulson/AdventOfCode/blob/master/2022/16.cc`.
 solve ::
+  Int ->
   M.Map String (Int, [String]) ->
   Int ->
   S.Set String ->
   String ->
+  Int ->
   Memo ->
   (Memo, Int)
-solve _ 0 _ _ memo = (memo, 0)
-solve graph time0 visited current memo0 =
-  case M.lookup (visited, current, time0) memo0 of
+solve _ _ 0 _ _ 0 memo = (memo, 0)
+solve reset graph 0 visited _ others memo =
+  solve reset graph reset visited "AA" (pred others) memo
+solve reset graph time0 visited current others memo0 =
+  case M.lookup (visited, current, others, time0) memo0 of
     Nothing ->
       let (value, neighbors) = (M.!) graph current
           -- NOTE: Turn on current valve.
@@ -52,10 +56,12 @@ solve graph time0 visited current memo0 =
               then
                 ((time1 * value) +)
                   <$> solve
+                    reset
                     graph
                     time1
                     (S.insert current visited)
                     current
+                    others
                     memo0
               else (memo0, 0)
           -- NOTE: Move to neighbors.
@@ -63,12 +69,19 @@ solve graph time0 visited current memo0 =
             foldl'
               ( \(memo2, best2) destination ->
                   let (memo3, best3) =
-                        solve graph time1 visited destination memo2
+                        solve
+                          reset
+                          graph
+                          time1
+                          visited
+                          destination
+                          others
+                          memo2
                    in (memo3, max best2 best3)
               )
               (memo1, best1)
               neighbors
-       in (M.insert (visited, current, time0) best4 memo4, best4)
+       in (M.insert (visited, current, others, time0) best4 memo4, best4)
     Just best0 -> (memo0, best0)
   where
     time1 = pred time0
@@ -76,9 +89,14 @@ solve graph time0 visited current memo0 =
 main :: IO ()
 main =
   interact $
-    show
-      . snd
-      . (\graph -> solve graph 30 S.empty "AA" M.empty)
+    unlines
+      . map (show . snd)
+      . zipWith
+        ( \(time, others) graph ->
+            solve time graph time S.empty "AA" others M.empty
+        )
+        [(30, 0), (26, 1)]
+      . repeat
       . M.fromList
       . fst
       . head
