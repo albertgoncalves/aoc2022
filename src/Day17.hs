@@ -1,8 +1,9 @@
 {-# LANGUAGE TupleSections #-}
 
 import Data.Bifunctor (first, second)
+import qualified Data.Map as M
 import qualified Data.Set as S
-import Prelude hiding (ceiling, drop)
+import Prelude hiding (ceiling, div, drop, mod)
 
 data Shape
   = ShapeMinus
@@ -49,8 +50,8 @@ stepFall world from
   where
     to = map (second $ subtract 1) from
 
-stepLoop :: S.Set Pos -> String -> [Pos] -> (String, S.Set Pos)
-stepLoop world (direction : directions) from =
+stepLoop :: S.Set Pos -> [(Int, Char)] -> [Pos] -> ([(Int, Char)], S.Set Pos)
+stepLoop world ((_, direction) : directions) from =
   case stepFall world $ stepPush world direction from of
     (True, to) -> stepLoop world directions to
     (False, to) -> (directions, foldr S.insert world to)
@@ -59,30 +60,73 @@ stepLoop _ _ _ = undefined
 ceiling :: S.Set Pos -> Int
 ceiling = maximum . (0 :) . map snd . S.elems
 
-drop :: (S.Set Pos, [Shape], String) -> (S.Set Pos, [Shape], String)
-drop (world0, shape : shapes, directions0) = (world1, shapes, directions1)
+drop ::
+  (S.Set Pos, [(Int, Shape)], [(Int, Char)]) ->
+  (S.Set Pos, [(Int, Shape)], [(Int, Char)])
+drop (world0, (_, shape) : shapes, directions0) = (world1, shapes, directions1)
   where
     (directions1, world1) =
       stepLoop world0 directions0 $
         map (second (+ (4 + ceiling world0))) $ intoPos shape
 drop _ = undefined
 
+fst3 :: (a, b, c) -> a
+fst3 (x, _, _) = x
+
+part1 :: [(S.Set Pos, [(Int, Shape)], [(Int, Char)])] -> Int
+part1 = ceiling . fst3 . (!! 2022)
+
+intoSig :: (S.Set Pos, [(Int, Shape)], [(Int, Char)]) -> ([Int], Int, Int)
+intoSig (world, (shape, _) : _, (direction, _) : _) =
+  ( map ((ceiling world -) . snd) $
+      M.toAscList $
+        M.fromListWith max $
+          S.elems world,
+    shape,
+    direction
+  )
+intoSig _ = undefined
+
+part2 ::
+  M.Map ([Int], Int, Int) (Int, Int) ->
+  [(Int, (S.Set Pos, [(Int, Shape)], [(Int, Char)]))] ->
+  Int
+part2 visited ((step1, iteration) : iterations) =
+  case M.lookup sig visited of
+    Nothing -> part2 (M.insert sig (step1, height1) visited) iterations
+    Just (step0, height0) ->
+      let (div, mod) = (1000000000000 - step0) `divMod` (step1 - step0)
+          height2 = ceiling $ fst3 $ snd $ iterations !! mod
+       in height0 + ((height1 - height0) * div) + (height2 - height1)
+  where
+    height1 = ceiling $ fst3 iteration
+    sig = intoSig iteration
+part2 _ _ = undefined
+
 main :: IO ()
 main =
   interact $
     unlines
-      . map (show . ceiling . (\(world, _, _) -> world))
-      . zipWith (flip (!!)) [2022]
+      . map show
+      . zipWith ($) [part1, part2 M.empty . zip [1 ..]]
       . repeat
       . ( \directions ->
             iterate
               drop
               ( S.empty,
-                cycle
-                  [ShapeMinus, ShapePlus, ShapeCorner, ShapePipe, ShapeSquare],
+                cycle $
+                  zip
+                    [0 ..]
+                    [ ShapeMinus,
+                      ShapePlus,
+                      ShapeCorner,
+                      ShapePipe,
+                      ShapeSquare
+                    ],
                 directions
               )
         )
       . cycle
+      . zip [0 ..]
       . head
       . lines
