@@ -1,7 +1,7 @@
-{-# LANGUAGE Strict #-}
-
 import Data.Char (isDigit)
-import Data.List (elemIndex)
+import Data.List (elemIndex, foldl')
+import Data.Map ((!))
+import qualified Data.Map as M
 import Data.Maybe (fromJust)
 import Text.ParserCombinators.ReadP
   ( ReadP,
@@ -15,43 +15,95 @@ import Text.ParserCombinators.ReadP
     (<++),
   )
 
+type Cell = (Int, Int)
+
+type Neighbors = (Cell, Cell)
+
 int :: ReadP Int
 int = (read .) . (:) <$> (satisfy isDigit <++ char '-') <*> munch isDigit
 
-push :: Int -> a -> [a] -> [a]
-push 0 x xs = x : xs
-push n a (b : bs) = b : push (pred n) a bs
-push _ _ _ = undefined
-
-mix :: Int -> Int -> [(Int, Int)] -> [(Int, Int)]
-mix l n (x@(a, b) : xs)
-  | l < n = xs ++ [x]
-  | n /= a = mix l n $ xs ++ [x]
-  | otherwise = mix l (succ n) $ push j x xs
+swapRight :: Cell -> M.Map Cell Neighbors -> M.Map Cell Neighbors
+swapRight b m
+  | (b /= aR) || (aR /= cL) || (bR /= dL) = undefined
+  | otherwise =
+    foldr
+      (uncurry M.insert)
+      m
+      [ (bL, (aL, bR)),
+        (b, (bR, cR)),
+        (bR, (bL, cL)),
+        (cR, (cL, dR))
+      ]
   where
-    j = b `mod` l
-mix _ _ _ = undefined
+    (aL, aR) = m ! bL
+    (bL, bR) = m ! b
+    (cL, cR) = m ! bR
+    (dL, dR) = m ! cR
 
-extract :: [Int] -> [Int]
-extract xs = map (\m -> xs !! ((n + m) `mod` l)) [1000, 2000, 3000]
+swapLeft :: Cell -> M.Map Cell Neighbors -> M.Map Cell Neighbors
+swapLeft c m
+  | (c /= bR) || (aR /= cL) || (bR /= dL) = undefined
+  | otherwise =
+    foldr
+      (uncurry M.insert)
+      m
+      [ (bL, (aL, bR)),
+        (cL, (bR, cR)),
+        (c, (bL, cL)),
+        (cR, (cL, dR))
+      ]
   where
-    n = fromJust $ elemIndex 0 xs
+    (aL, aR) = m ! bL
+    (bL, bR) = m ! cL
+    (cL, cR) = m ! c
+    (dL, dR) = m ! cR
+
+for :: Int -> (a -> b -> b) -> a -> b -> b
+for n f a b = iterate (f a) b !! n
+
+swap :: Int -> Cell -> M.Map Cell Neighbors -> M.Map Cell Neighbors
+swap l x@(_, k)
+  | (l `div` 2) <= n = for (l - n) swapLeft x
+  | otherwise = for n swapRight x
+  where
+    n = k `mod` l
+
+unpack :: Cell -> M.Map Cell Neighbors -> [Cell]
+unpack a m = a : unpack b m
+  where
+    (_, b) = m ! a
+
+mix :: Int -> [Cell] -> M.Map Cell Neighbors -> M.Map Cell Neighbors
+mix l xs0 m = foldl' (flip $ swap l) m xs0
+
+intoMap :: Int -> [Cell] -> M.Map Cell Neighbors
+intoMap l xs0 = M.fromList $ take l $ zip xs2 $ zip xs1 $ tail xs2
+  where
+    xs1 = cycle xs0
+    xs2 = tail xs1
+
+part1 :: [Cell] -> (Int, [Cell])
+part1 xs = (l, unpack (head xs) $ mix (pred l) xs $ intoMap l xs)
+  where
     l = length xs
 
-part1 :: [(Int, Int)] -> [(Int, Int)]
-part1 xs = mix (length xs - 1) 0 xs
-
-part2 :: [(Int, Int)] -> [(Int, Int)]
-part2 xs = iterate (mix l 0) (map ((811589153 *) <$>) xs) !! 10
+part2 :: [Cell] -> (Int, [Cell])
+part2 xs0 =
+  (l, unpack (head xs1) $ iterate (mix (pred l) xs1) (intoMap l xs1) !! 10)
   where
-    l :: Int
-    l = length xs - 1
+    l = length xs0
+    xs1 = map ((811589153 *) <$>) xs0
+
+extract :: Int -> [Int] -> [Int]
+extract l xs = map (\k -> xs !! ((n + k) `mod` l)) [1000, 2000, 3000]
+  where
+    n = fromJust $ elemIndex 0 xs
 
 main :: IO ()
 main =
   interact $
     unlines
-      . map (show . sum . extract . map snd)
+      . map (show . sum . (\(l, xs) -> extract l $ map snd $ take l xs))
       . zipWith ($) [part1, part2]
       . repeat
       . zip [0 ..]
