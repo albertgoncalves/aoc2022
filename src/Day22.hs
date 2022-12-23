@@ -64,14 +64,14 @@ parse =
     intoMap :: [[(Int, Wall)]] -> M.Map Pos Wall
     intoMap = M.fromList . concat . zipWith (\i -> map (first (,i))) [0 ..]
 
-translate :: Int -> Int -> Pos -> Dir -> Pos
-translate k n (x, y) DirRight = (x + (k * n), y)
-translate k n (x, y) DirDown = (x, y + (k * n))
-translate k n (x, y) DirLeft = (x - (k * n), y)
-translate k n (x, y) DirUp = (x, y - (k * n))
+translate :: Int -> Int -> Pos -> Dir -> (Pos, Dir)
+translate k n (x, y) DirRight = ((x + (k * n), y), DirRight)
+translate k n (x, y) DirDown = ((x, y + (k * n)), DirDown)
+translate k n (x, y) DirLeft = ((x - (k * n), y), DirLeft)
+translate k n (x, y) DirUp = ((x, y - (k * n)), DirUp)
 
 step :: Pos -> Dir -> (Pos, Dir)
-step pos dir = (translate 1 1 pos dir, dir)
+step = translate 1 1
 
 move ::
   (Int, Int) -> Wrapper -> Dir -> M.Map Pos Wall -> Bounds -> Maybe (Pos, Dir)
@@ -112,11 +112,9 @@ minMax =
     . map (second (: []))
 
 intoBounds :: Int -> M.Map Pos Wall -> Bounds
-intoBounds k world = (k, vertical, horizontal)
+intoBounds k world = (k, minMax keys, minMax $ map swap keys)
   where
     keys = M.keys world
-    vertical = minMax keys
-    horizontal = minMax $ map swap keys
 
 part1 :: Wrapper
 part1 (_, y) DirRight _ (_, _, horizontal) =
@@ -128,14 +126,12 @@ part1 (_, y) DirLeft _ (_, _, horizontal) =
 part1 (x, _) DirUp _ (_, vertical, _) =
   ((x, snd $ vertical ! x), DirUp)
 
-rotate :: Bool -> Int -> Pos -> Pos
-rotate True k (x, y) = (xDelta - (yMod - (k - 1)), yDelta + xMod)
-  where
-    xMod = x `mod` k
-    yMod = y `mod` k
-    xDelta = x - xMod
-    yDelta = y - yMod
-rotate False k (x, y) = (xDelta + yMod, yDelta - (xMod - (k - 1)))
+rotate :: Bool -> Int -> Pos -> Dir -> (Pos, Dir)
+rotate turn k (x, y) dir
+  | turn =
+    ((xDelta - (yMod - (k - 1)), yDelta + xMod), changeDir turn dir)
+  | otherwise =
+    ((xDelta + yMod, yDelta - (xMod - (k - 1))), changeDir turn dir)
   where
     xMod = x `mod` k
     yMod = y `mod` k
@@ -143,62 +139,63 @@ rotate False k (x, y) = (xDelta + yMod, yDelta - (xMod - (k - 1)))
     yDelta = y - yMod
 
 translateRotate :: Int -> Int -> Bool -> Pos -> Dir -> (Pos, Dir)
-translateRotate k n turn pos0 dir0 =
-  (rotate turn k $ translate k n pos0 dir0, changeDir turn dir0)
+translateRotate k n turn = (uncurry (rotate turn k) .) . translate k n
+
+member :: M.Map Pos Wall -> [(Pos, Dir)] -> (Pos, Dir)
+member world = head . filter ((`M.member` world) . fst) . map (uncurry step)
 
 part2 :: Wrapper
-part2 pos@(11, _) dir@DirRight _ (4, _, _) =
-  uncurry step $ translateRotate 4 1 True pos dir
-part2 pos@(0, y) dir@DirLeft _ (50, _, _)
+part2 pos@(11, _) DirRight _ (4, _, _) =
+  uncurry step $ translateRotate 4 1 True pos DirRight
+part2 pos@(0, y) DirLeft _ (50, _, _)
   | 150 <= y =
     uncurry step $
       uncurry (translateRotate 50 1 True) $
-        translateRotate 50 4 True (rotate True 50 pos) $ changeDir True dir
-part2 pos@(50, y) dir@DirLeft _ (50, _, _)
-  | 50 <= y = uncurry step $ translateRotate 50 1 False pos dir
-part2 pos@(99, y) dir@DirRight _ (50, _, _)
+        uncurry (translateRotate 50 4 True) $ rotate True 50 pos DirLeft
+part2 pos@(50, y) DirLeft _ (50, _, _)
+  | 50 <= y = uncurry step $ translateRotate 50 1 False pos DirLeft
+part2 pos@(99, y) DirRight _ (50, _, _)
   | 100 < y =
     uncurry step $
-      uncurry (translateRotate 50 2 False) $ translateRotate 50 2 False pos dir
-part2 pos@(149, y) dir@DirRight _ (50, _, _)
+      uncurry (translateRotate 50 2 False) $
+        translateRotate 50 2 False pos DirRight
+part2 pos@(149, y) DirRight _ (50, _, _)
   | y <= 50 =
     uncurry step $
-      translateRotate 50 2 True (rotate True 50 pos) $ changeDir True dir
-part2 pos dir@DirRight _ (k, _, _) =
-  uncurry step $ translateRotate k 1 False pos dir
-part2 pos dir@DirDown world (k, _, _) =
-  head $
-    filter ((`M.member` world) . fst) $
-      map
-        (uncurry step)
-        [ translateRotate k 1 True pos dir,
-          uncurry (translateRotate k 2 True) $
-            translateRotate k 4 True (rotate True k $ rotate True k pos) $
-              changeDir True $ changeDir True dir,
-          translateRotate k 2 True (rotate True k pos) $ changeDir True dir
-        ]
-part2 pos dir@DirLeft world (k, _, _) =
-  head $
-    filter ((`M.member` world) . fst) $
-      map
-        (uncurry step)
-        [ uncurry (translateRotate k 2 False) $
-            translateRotate k 2 False pos dir,
-          translateRotate k 2 True (rotate True k pos) $ changeDir True dir
-        ]
-part2 pos dir@DirUp world (k, _, _) =
-  head $
-    filter ((`M.member` world) . fst) $
-      map
-        (uncurry step)
-        [ uncurry (translateRotate k 3 False) $
-            translateRotate k 2 False (rotate False k pos) $
-              changeDir False dir,
-          uncurry (translateRotate k 2 True) $
-            translateRotate k 4 True (rotate True k $ rotate True k pos) $
-              changeDir True $ changeDir True dir,
-          translateRotate k 1 True pos dir
-        ]
+      uncurry (translateRotate 50 2 True) $ rotate True 50 pos DirRight
+part2 pos DirRight _ (k, _, _) =
+  uncurry step $ translateRotate k 1 False pos DirRight
+part2 pos DirDown world (k, _, _) =
+  member world $
+    map
+      ($ DirDown)
+      [ translateRotate k 1 True pos,
+        uncurry (translateRotate k 2 True)
+          . uncurry (translateRotate k 4 True)
+          . uncurry (rotate True k)
+          . rotate True k pos,
+        uncurry (translateRotate k 2 True) . rotate True k pos
+      ]
+part2 pos DirLeft world (k, _, _) =
+  member world $
+    map
+      ($ DirLeft)
+      [ uncurry (translateRotate k 2 False) . translateRotate k 2 False pos,
+        uncurry (translateRotate k 2 True) . rotate True k pos
+      ]
+part2 pos DirUp world (k, _, _) =
+  member world $
+    map
+      ($ DirUp)
+      [ uncurry (translateRotate k 3 False)
+          . uncurry (translateRotate k 2 False)
+          . rotate False k pos,
+        uncurry (translateRotate k 2 True)
+          . uncurry (translateRotate k 4 True)
+          . uncurry (rotate True k)
+          . rotate True k pos,
+        translateRotate k 1 True pos
+      ]
 
 main :: IO ()
 main =
