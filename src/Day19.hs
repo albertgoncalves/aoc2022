@@ -151,21 +151,21 @@ main =
         Just best0 -> (m0, best0)
         Nothing
           | g <= bank1 ->
-            let (m1, best1) =
-                  search m0 time2 reset (bank2 - g) (robots + geode) blueprint
-             in (M.insert key best1 m1, best1)
+              let (m1, best1) =
+                    search m0 time2 reset (bank2 - g) (robots + geode) blueprint
+               in (M.insert key best1 m1, best1)
         Nothing ->
           let (m1, best1)
                 | r <= bank1 && resOre robots < resOre p && not iR =
-                  search m0 time2 reset (bank2 - r) (robots + ore) blueprint
+                    search m0 time2 reset (bank2 - r) (robots + ore) blueprint
                 | otherwise = (m0, 0)
               (m2, best2)
                 | c <= bank1 && resClay robots < resClay p && not iC =
-                  search m1 time2 reset (bank2 - c) (robots + clay) blueprint
+                    search m1 time2 reset (bank2 - c) (robots + clay) blueprint
                 | otherwise = (m1, 0)
               (m3, best3)
                 | o <= bank1 && resObsid robots < resObsid p && not iO =
-                  search m2 time2 reset (bank2 - o) (robots + obsid) blueprint
+                    search m2 time2 reset (bank2 - o) (robots + obsid) blueprint
                 | otherwise = (m2, 0)
               (m4, best4) = search m3 time2 ignore bank2 robots blueprint
               best5 = maximum [best1, best2, best3, best4]

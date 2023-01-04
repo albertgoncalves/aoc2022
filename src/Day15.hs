@@ -23,7 +23,8 @@ type Row = ([Span], Int)
 int :: ReadP Int
 int =
   (read .) . (:)
-    <$> satisfy (\x -> isDigit x || x == '-') <*> munch isDigit
+    <$> satisfy (\x -> isDigit x || x == '-')
+    <*> munch isDigit
 
 line :: ReadP Pair
 line = do
@@ -94,11 +95,12 @@ withinBounds n (x, y) = (0 <= x) && (0 <= y) && (x <= n) && (y <= n)
 
 part2 :: Int -> [Pair] -> Int
 part2 n pairs =
-  (\(x, y) -> (x * 4000000) + y) $
-    head $
-      filter
-        (\candidate -> not $ any (uncurry (withinRange candidate)) sensors)
-        $ filter (withinBounds $ n * 2) $ concatMap (uncurry neighbors) sensors
+  (\(x, y) -> (x * 4000000) + y)
+    $ head
+    $ filter
+      (\candidate -> not $ any (uncurry (withinRange candidate)) sensors)
+    $ filter (withinBounds $ n * 2)
+    $ concatMap (uncurry neighbors) sensors
   where
     sensors = map (uncurry pointRadius) pairs
 

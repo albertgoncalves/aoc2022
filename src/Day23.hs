@@ -33,11 +33,12 @@ propose :: S.Set Pos -> [Dir] -> Pos -> [(Pos, Pos)]
 propose world dirs pos
   | not $ any (`S.member` world) $ neighbors pos Nothing = []
   | otherwise =
-    take 1 $
-      map (snd <$>) $
-        filter (not . any (`S.member` world) . fst . snd) $
-          zip (map (step pos) dirs) $
-            zip (map (neighbors pos . Just) dirs) $ repeat pos
+      take 1 $
+        map (snd <$>) $
+          filter (not . any (`S.member` world) . fst . snd) $
+            zip (map (step pos) dirs) $
+              zip (map (neighbors pos . Just) dirs) $
+                repeat pos
 
 resolve :: S.Set Pos -> [(Pos, Pos)] -> S.Set Pos
 resolve world =

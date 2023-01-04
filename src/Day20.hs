@@ -26,14 +26,14 @@ swapRight :: Cell -> M.Map Cell Neighbors -> M.Map Cell Neighbors
 swapRight b m
   | (b /= aR) || (aR /= cL) || (bR /= dL) = undefined
   | otherwise =
-    foldr
-      (uncurry M.insert)
-      m
-      [ (bL, (aL, bR)),
-        (b, (bR, cR)),
-        (bR, (bL, cL)),
-        (cR, (cL, dR))
-      ]
+      foldr
+        (uncurry M.insert)
+        m
+        [ (bL, (aL, bR)),
+          (b, (bR, cR)),
+          (bR, (bL, cL)),
+          (cR, (cL, dR))
+        ]
   where
     (aL, aR) = m ! bL
     (bL, bR) = m ! b
@@ -44,14 +44,14 @@ swapLeft :: Cell -> M.Map Cell Neighbors -> M.Map Cell Neighbors
 swapLeft c m
   | (c /= bR) || (aR /= cL) || (bR /= dL) = undefined
   | otherwise =
-    foldr
-      (uncurry M.insert)
-      m
-      [ (bL, (aL, bR)),
-        (cL, (bR, cR)),
-        (c, (bL, cL)),
-        (cR, (cL, dR))
-      ]
+      foldr
+        (uncurry M.insert)
+        m
+        [ (bL, (aL, bR)),
+          (cL, (bR, cR)),
+          (c, (bL, cL)),
+          (cR, (cL, dR))
+        ]
   where
     (aL, aR) = m ! bL
     (bL, bR) = m ! cL

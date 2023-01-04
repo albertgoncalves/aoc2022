@@ -30,9 +30,9 @@ encode r0 n = c : encode r1 (n - (k * m))
     k = 5 ^ r1
     f
       | n < 0 =
-        last . filter ((<= n) . (\x -> (x * k) - (k `div` 2)) . snd)
+          last . filter ((<= n) . (\x -> (x * k) - (k `div` 2)) . snd)
       | otherwise =
-        head . filter ((n <=) . (\x -> (x * k) + (k `div` 2)) . snd)
+          head . filter ((n <=) . (\x -> (x * k) + (k `div` 2)) . snd)
     (c, m) = f $ zip "=-012" [-2, -1, 0, 1, 2]
 
 main :: IO ()

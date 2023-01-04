@@ -67,7 +67,8 @@ drop (world0, (_, shape) : shapes, directions0) = (world1, shapes, directions1)
   where
     (directions1, world1) =
       stepLoop world0 directions0 $
-        map (second (+ (4 + ceiling world0))) $ intoPos shape
+        map (second (+ (4 + ceiling world0))) $
+          intoPos shape
 drop _ = undefined
 
 fst3 :: (a, b, c) -> a

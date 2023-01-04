@@ -53,7 +53,8 @@ parse =
     row :: ReadP [(Int, Wall)]
     row =
       map (second (== '#')) . filter ((/= ' ') . snd) . zip [0 ..]
-        <$> many1 (satisfy (`elem` " .#")) <* newline
+        <$> many1 (satisfy (`elem` " .#"))
+        <* newline
 
     turn :: ReadP Bool
     turn = (True <$ char 'R') <++ (False <$ char 'L')
@@ -129,9 +130,9 @@ part1 (x, _) DirUp _ (_, vertical, _) =
 rotate :: Bool -> Int -> Pos -> Dir -> (Pos, Dir)
 rotate turn k (x, y) dir
   | turn =
-    ((xDelta - (yMod - (k - 1)), yDelta + xMod), changeDir turn dir)
+      ((xDelta - (yMod - (k - 1)), yDelta + xMod), changeDir turn dir)
   | otherwise =
-    ((xDelta + yMod, yDelta - (xMod - (k - 1))), changeDir turn dir)
+      ((xDelta + yMod, yDelta - (xMod - (k - 1))), changeDir turn dir)
   where
     xMod = x `mod` k
     yMod = y `mod` k
@@ -149,20 +150,22 @@ part2 pos@(11, _) DirRight _ (4, _, _) =
   uncurry step $ translateRotate 4 1 True pos DirRight
 part2 pos@(0, y) DirLeft _ (50, _, _)
   | 150 <= y =
-    uncurry step $
-      uncurry (translateRotate 50 1 True) $
-        uncurry (translateRotate 50 4 True) $ rotate True 50 pos DirLeft
+      uncurry step $
+        uncurry (translateRotate 50 1 True) $
+          uncurry (translateRotate 50 4 True) $
+            rotate True 50 pos DirLeft
 part2 pos@(50, y) DirLeft _ (50, _, _)
   | 50 <= y = uncurry step $ translateRotate 50 1 False pos DirLeft
 part2 pos@(99, y) DirRight _ (50, _, _)
   | 100 < y =
-    uncurry step $
-      uncurry (translateRotate 50 2 False) $
-        translateRotate 50 2 False pos DirRight
+      uncurry step $
+        uncurry (translateRotate 50 2 False) $
+          translateRotate 50 2 False pos DirRight
 part2 pos@(149, y) DirRight _ (50, _, _)
   | y <= 50 =
-    uncurry step $
-      uncurry (translateRotate 50 2 True) $ rotate True 50 pos DirRight
+      uncurry step $
+        uncurry (translateRotate 50 2 True) $
+          rotate True 50 pos DirRight
 part2 pos DirRight _ (k, _, _) =
   uncurry step $ translateRotate k 1 False pos DirRight
 part2 pos DirDown world (k, _, _) =

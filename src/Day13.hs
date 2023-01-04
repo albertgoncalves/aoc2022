@@ -28,10 +28,10 @@ instance Ord Data where
   compare l r
     | l == r = EQ
     | otherwise =
-      case check l r of
-        StatusOk -> LT
-        StatusError -> GT
-        StatusContinue -> undefined
+        case check l r of
+          StatusOk -> LT
+          StatusError -> GT
+          StatusContinue -> undefined
 
 dataList :: ReadP Data
 dataList =

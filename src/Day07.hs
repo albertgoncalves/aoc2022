@@ -70,7 +70,10 @@ tally ::
   M.Map [String] Int
 tally path files =
   M.unionWith (+) $
-    M.fromList $ map (,sum $ map snd files) $ filter (not . null) $ inits path
+    M.fromList $
+      map (,sum $ map snd files) $
+        filter (not . null) $
+          inits path
 
 part1 :: [Int] -> Int
 part1 = sum . filter (<= 100000)

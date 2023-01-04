@@ -25,7 +25,8 @@ sim width height history0 time =
       let (history1, world0) = sim width height history0 $ pred time
           world1 =
             M.fromListWith (++) $
-              concatMap (uncurry $ step width height) $ M.toList world0
+              concatMap (uncurry $ step width height) $
+                M.toList world0
        in (M.insert time world1 history1, world1)
 
 step :: Int -> Int -> Pos -> String -> [(Pos, String)]
@@ -71,7 +72,8 @@ search width height end visited history0 ((time0, pos) : queue0) =
     queue1 =
       filter (`S.notMember` visited) $
         map (time1,) $
-          filter (`M.notMember` world1) $ neighbors width height pos
+          filter (`M.notMember` world1) $
+            neighbors width height pos
     time1 = succ time0
 search _ _ _ _ _ _ = undefined
 

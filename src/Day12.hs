@@ -16,7 +16,8 @@ steps :: (Enum e, Ord e) => Array Pos e -> Pos -> [Pos]
 steps array (j, i) =
   map fst $
     filter ((<= succ current) . snd) $
-      zip candidates $ map (array !) candidates
+      zip candidates $
+        map (array !) candidates
   where
     candidates =
       filter
@@ -33,11 +34,11 @@ search ::
 search visited array ((start, n) : rest)
   | S.member start visited = (start, n) : search visited array rest
   | otherwise =
-    (start, n) :
-    search
-      (S.insert start visited)
-      array
-      (rest ++ map (,succ n) (steps array start))
+      (start, n)
+        : search
+          (S.insert start visited)
+          array
+          (rest ++ map (,succ n) (steps array start))
 search _ _ _ = []
 
 find :: (Ix i, Eq e) => (e -> Bool) -> Array i e -> [i]
@@ -50,17 +51,19 @@ main =
       . map (show . snd . head)
       . zipWith
         ( \starts array ->
-            filter ((== head (find (== 'E') array)) . fst) $
-              search
+            filter ((== head (find (== 'E') array)) . fst)
+              $ search
                 S.empty
                 (swap <$> array)
-                $ map (,0 :: Int) $ find (`elem` starts) array
+              $ map (,0 :: Int)
+              $ find (`elem` starts) array
         )
         ["S", "Sa"]
       . repeat
       . ( \rows ->
             listArray
               ((0, 0), (length (head rows) - 1, length rows - 1))
-              $ concat $ transpose rows
+              $ concat
+              $ transpose rows
         )
       . lines

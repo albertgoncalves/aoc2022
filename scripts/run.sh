@@ -25,6 +25,6 @@ flags=(
 )
 
 hlint "$1"
-ormolu -i "$1"
+ormolu -i --no-cabal "$1"
 ghc "${flags[@]}" -o "$WD/bin/main" "$1"
 "$WD/bin/main" < "$2"

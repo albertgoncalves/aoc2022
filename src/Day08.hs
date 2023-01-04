@@ -15,7 +15,8 @@ part1 array =
   length $
     nub $
       sort $
-        concatMap visible $ concat [p0, p1, map reverse p0, map reverse p1]
+        concatMap visible $
+          concat [p0, p1, map reverse p0, map reverse p1]
   where
     (x, y) = snd $ bounds array
     p0 = [[(j, i) | j <- [0 .. x]] | i <- [0 .. y]]

@@ -69,15 +69,15 @@ search
         || xMax < x
         || yMax < y
         || zMax < z =
-      search visited cubes min max probes
+        search visited cubes min max probes
     | otherwise =
-      probe :
-      search
-        (S.insert probe visited)
-        cubes
-        min
-        max
-        (probes ++ intoNeighbors probe)
+        probe
+          : search
+            (S.insert probe visited)
+            cubes
+            min
+            max
+            (probes ++ intoNeighbors probe)
 search _ _ _ _ [] = []
 
 minMax :: (Ord a, Ord b) => (a -> b) -> M.Map a c -> (b, b)
@@ -98,13 +98,13 @@ part2 cubes =
               z <- [zMin .. zMax]
           ]
       )
-      $ S.fromList $
-        search
-          S.empty
-          cubes
-          (pred xMin, pred yMin, pred zMin)
-          (succ xMax, succ yMax, succ zMax)
-          [(pred xMin, pred yMin, pred zMin)]
+    $ S.fromList
+    $ search
+      S.empty
+      cubes
+      (pred xMin, pred yMin, pred zMin)
+      (succ xMax, succ yMax, succ zMax)
+      [(pred xMin, pred yMin, pred zMin)]
   where
     (xMin, xMax) = minMax (\(x, _, _) -> x) cubes
     (yMin, yMax) = minMax (\(_, y, _) -> y) cubes
